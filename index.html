@@ -17,40 +17,31 @@
     box-shadow: 0 20px 70px rgba(0,0,0,.45);
   ">
     <h2 style="margin-top: 0;">Pietro Portfolio</h2>
-    <p>Inserisci la tua email per ricevere il magic link.</p>
-
+    <p>Accedi al tuo portafoglio con email e password.</p>
     <input
-      id="login-email"
-      type="email"
-      value="pietro.mossio@gmail.com"
-      placeholder="La tua email"
-      style="
-        width: 100%;
-        box-sizing: border-box;
-        padding: 13px;
-        border: 1px solid #5b4b76;
-        border-radius: 9px;
-        background: #0f0c18;
-        color: white;
-        margin: 12px 0;
-      "
-    >
+  id="login-email"
+  type="email"
+  value="pietro.mossio@gmail.com"
+  placeholder="La tua email"
+  style="
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px;
+    border: 1px solid #5b4b76;
+    border-radius: 9px;
+    background: #0f0c18;
+    color: white;
+    margin: 12px 0;
+  "
+>
 
-    <button
-      id="login-button"
-      type="button"
-      style="
-        width: 100%;
-        padding: 13px;
-        border: 0;
-        border-radius: 9px;
-        background: #c45be5;
-        color: white;
-        cursor: pointer;
-      "
-    >
-      Inviami il magic link
-    </button>
+<input
+  id="login-password"
+  type="password"
+  placeholder="La tua password"
+  style="
+    width: 100%;
+    box-sizing: border-box;
 
     <p id="login-status" style="min-height: 22px; color: #b9a8ca;"></p>
   </div>
@@ -166,9 +157,7 @@ loginButton.addEventListener("click", async () => {
     return;
   }
 
-  loginButton.disabled = true;
-  showAuthMessage("Invio del magic link...");
-
+  
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
@@ -183,8 +172,6 @@ loginButton.addEventListener("click", async () => {
     return;
   }
 
-  showAuthMessage("Controlla la tua email: il magic link è stato inviato.");
-});
 
 async function loadHoldings() {
   const {
