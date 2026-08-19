@@ -537,35 +537,71 @@ data = (holdings || []).map(item => ({
   type: item.type || "Crypto",
   date: item.date || (
     item.created_at
-      ? new Date(item.created_at).toLocaleDateString("it-IT")
+      ? new Date(item.created_at)
+          .toLocaleDateString("it-IT")
       : "—"
   ),
-  price: Number(item.price ?? item.average_price ?? 0),
-  units: Number(item.units ?? item.quantity ?? 0),
+  price: Number(
+    item.price ??
+    item.average_price ??
+    0
+  ),
+  units: Number(
+    item.units ??
+    item.quantity ??
+    0
+  ),
   auto: true
 }));
 
-  if (typeof render === "function") {
-    render();
-  }
+if (typeof render === "function") {
+  render();
+}
 }
 
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  console.log("Evento autenticazione:", event);
+supabaseClient.auth.onAuthStateChange(
+  (event, session) => {
+    console.log(
+      "Evento autenticazione:",
+      event
+    );
 
-  if (session?.user) {
-    loadHoldings();
+    if (event === "PASSWORD_RECOVERY") {
+      const panel =
+        document.getElementById(
+          "password-reset-panel"
+        );
+
+      const auth =
+        document.getElementById(
+          "auth-panel"
+        );
+
+      if (panel) {
+        panel.style.display = "flex";
+      }
+
+      if (auth) {
+        auth.style.display = "none";
+      }
+    }
+
+    if (session?.user) {
+      loadHoldings();
+    }
   }
-});
+);
 
+supabaseClient.auth.getSession()
+  .then(async ({ data: sessionData }) => {
+    await updateAuthUI(
+      sessionData.session
+    );
 
-supabaseClient.auth.getSession().then(async ({ data }) => {
-  await updateAuthUI(data.session);
-
-  if (data.session) {
-    await loadHoldings();
-  }
-});
+    if (sessionData.session) {
+      await loadHoldings();
+    }
+  });
 </script><script>
 (() => {
   const input = document.getElementById("ai-command-input");
