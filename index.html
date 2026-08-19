@@ -215,9 +215,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-  if (error) {
-    throw error;
-  }
 </script><script>
 const authPanel = document.getElementById("auth-panel");
 const loginEmail = document.getElementById("login-email");
@@ -277,13 +274,6 @@ loginButton.addEventListener("click", async () => {
   location.reload();
  }
 );
-
-  if (typeof updateAuthUI === "function") {
-    await updateAuthUI();
-  } else {
-    location.reload();
-  }
-});
 
 const passwordResetPanel =
   document.getElementById("password-reset-panel");
