@@ -74,9 +74,73 @@
     Accedi
   </button>
 </div>
+<div
+  id="password-reset-panel"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 8, 20, 0.96);
+    font-family: Arial, sans-serif;
+  "
+>
+  <div
+    style="
+      width: min(420px, 90vw);
+      padding: 32px;
+      border-radius: 18px;
+      background: #191526;
+      color: white;
+    "
+  >
+    <h2>Imposta una nuova password</h2>
 
-<p id="login-status"></p>
+    <input
+      id="new-password"
+      type="password"
+      placeholder="Nuova password"
+      style="
+        width: 100%;
+        box-sizing: border-box;
+        padding: 13px;
+        margin: 12px 0;
+      "
+    >
 
+    <input
+      id="confirm-password"
+      type="password"
+      placeholder="Ripeti la password"
+      style="
+        width: 100%;
+        box-sizing: border-box;
+        padding: 13px;
+        margin: 12px 0;
+      "
+    >
+
+    <button
+      id="save-password"
+      type="button"
+      style="
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 9px;
+        background: #c45be5;
+        color: white;
+        cursor: pointer;
+      "
+    >
+      Salva nuova password
+    </button>
+
+    <p id="password-reset-status"></p>
+  </div>
+</div>
     <p id="login-status" style="min-height: 22px; color: #b9a8ca;"></p>
   </div>
 </div><div class="app"><aside class="side"><div class="brand"><span class="mark">₪</span>Pietro S.p.a</div><div class="nav"><button class="active" data-page="dashboard">Dashboard</button><button data-page="portfolio">Portfolio</button><button data-page="market">Market</button></div></aside><main class="main"><section class="section active" id="dashboard"><div class="top"><div class="hello"><div><h1 id="greeting">Welcome, Pietro</h1><p>Panoramica del tuo portafoglio</p></div><button class="eye" id="eye">◉</button></div><div class="clock" id="clock">00:00:00</div><div class="user"><span class="av">PM</span>Pietro Mossio</div></div><div class="grid"><div class="card"><div class="head">Total Holding <span>Totale</span></div><div class="value" id="totalValue">€0,00</div><div class="gain" id="gainValue">+0,00%</div><div class="status" id="updateStatus">Ultimo aggiornamento: in attesa</div>
@@ -219,6 +283,102 @@ loginButton.addEventListener("click", async () => {
   }
 });
 
+const passwordResetPanel =
+  document.getElementById("password-reset-panel");
+
+const newPassword =
+  document.getElementById("new-password");
+
+const confirmPassword =
+  document.getElementById("confirm-password");
+
+const savePasswordButton =
+  document.getElementById("save-password");
+
+const passwordResetStatus =
+  document.getElementById("password-reset-status");
+
+function showPasswordResetMessage(
+  message,
+  isError = false
+) {
+  passwordResetStatus.textContent = message;
+  passwordResetStatus.style.color =
+    isError ? "#ff7b91" : "#b9a8ca";
+}
+
+supabaseClient.auth.onAuthStateChange(
+  async (event) => {
+    if (event === "PASSWORD_RECOVERY") {
+      passwordResetPanel.style.display = "flex";
+
+      const authPanel =
+        document.getElementById("auth-panel");
+
+      if (authPanel) {
+        authPanel.style.display = "none";
+      }
+    }
+  }
+);
+
+savePasswordButton.addEventListener(
+  "click",
+  async () => {
+    const password = newPassword.value;
+    const confirmation = confirmPassword.value;
+
+    if (password.length < 8) {
+      showPasswordResetMessage(
+        "La password deve avere almeno 8 caratteri.",
+        true
+      );
+      return;
+    }
+
+    if (password !== confirmation) {
+      showPasswordResetMessage(
+        "Le password non coincidono.",
+        true
+      );
+      return;
+    }
+
+    savePasswordButton.disabled = true;
+    showPasswordResetMessage(
+      "Aggiornamento password..."
+    );
+
+    const { error } =
+      await supabaseClient.auth.updateUser({
+        password
+      });
+
+    savePasswordButton.disabled = false;
+
+    if (error) {
+      console.error(
+        "Errore aggiornamento password:",
+        error
+      );
+
+      showPasswordResetMessage(
+        error.message,
+        true
+      );
+      return;
+    }
+
+    showPasswordResetMessage(
+      "Password aggiornata correttamente."
+    );
+
+    setTimeout(() => {
+      passwordResetPanel.style.display = "none";
+      location.reload();
+    }, 1500);
+  }
+);
 
 async function loadHoldings() {
   const {
