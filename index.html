@@ -228,7 +228,7 @@ function showAuthMessage(message, isError = false) {
 }
 
 async function updateAuthUI(session) {
-  if (session && session.user) {
+  if (session) {
     authPanel.style.display = "none";
     return;
   }
@@ -272,8 +272,13 @@ loginButton.addEventListener("click", async () => {
   }
 
   showAuthMessage("Accesso effettuato.");
-authPanel.style.display = "none";
-await updateAuthUI({ user: true });
+
+  if (typeof updateAuthUI === "function") {
+    await updateAuthUI();
+  } else {
+    location.reload();
+  }
+});
 
 const passwordResetPanel =
   document.getElementById("password-reset-panel");
