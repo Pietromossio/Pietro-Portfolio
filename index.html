@@ -143,7 +143,12 @@
 </div>
     <p id="login-status" style="min-height: 22px; color: #b9a8ca;"></p>
   </div>
-</div><div class="app"><aside class="side"><div class="brand"><span class="mark">₪</span>Pietro S.p.a</div><div class="nav"><button class="active" data-page="dashboard">Dashboard</button><button data-page="portfolio">Portfolio</button><button data-page="market">Market</button></div></aside><main class="main"><section class="section active" id="dashboard"><div class="top"><div class="hello"><div><h1 id="greeting">Welcome, Pietro</h1><p>Panoramica del tuo portafoglio</p></div><button class="eye" id="eye">◉</button></div><div class="clock" id="clock">00:00:00</div><div class="user"><span class="av">PM</span>Pietro Mossio</div></div><div class="grid"><div class="card"><div class="head">Total Holding <span>Totale</span></div><div class="value" id="totalValue">€0,00</div><div class="gain" id="gainValue">+0,00%</div><div class="status" id="updateStatus">Ultimo aggiornamento: in attesa</div>
+</div><div class="app"><aside class="side"><div class="brand"><span class="mark">₪</span>Pietro S.p.a</div><div class="nav"><button class="active" data-page="dashboard">Dashboard</button><button data-page="portfolio">Portfolio</button><button data-page="market">Market</button></div></aside><main class="main"><section class="section active" id="dashboard"><div class="top"><div class="hello"><div><h1 id="greeting">Welcome, Pietro</h1><p>Panoramica del tuo portafoglio</p></div><button class="eye" id="eye">◉</button></div><div class="clock" id="clock">00:00:00</div><div class="user-menu" style="position:relative;justify-self:end;">
+<div class="user" id="userMenuToggle" style="justify-self:end;cursor:pointer;user-select:none;"><span class="av">PM</span>Pietro Mossio</div>
+<div id="userDropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:140px;background:#191526;border:1px solid #2a2438;border-radius:12px;box-shadow:0 12px 30px #0008;overflow:hidden;z-index:10;">
+<button id="logoutButton" style="width:100%;border:0;background:none;color:#ff5c7a;text-align:left;padding:12px 16px;font:500 13px Inter, sans-serif;cursor:pointer;">Esci</button>
+</div>
+</div></div><div class="grid"><div class="card"><div class="head">Total Holding <span>Totale</span></div><div class="value" id="totalValue">€0,00</div><div class="gain" id="gainValue">+0,00%</div><div class="status" id="updateStatus">Ultimo aggiornamento: in attesa</div>
 
 <div id="ai-command-box" style="
   width: min(100%, 430px);
@@ -222,10 +227,55 @@ const loginEmail = document.getElementById("login-email");
 const loginButton = document.getElementById("login-button");
 const loginStatus = document.getElementById("login-status");
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minuti
+const LOGIN_TS_KEY = "pietro_login_ts";
+
 function showAuthMessage(message, isError = false) {
   loginStatus.textContent = message;
   loginStatus.style.color = isError ? "#ff7b91" : "#b9a8ca";
 }
+
+function markLoginTimestamp() {
+  localStorage.setItem(LOGIN_TS_KEY, Date.now().toString());
+}
+
+function clearLoginTimestamp() {
+  localStorage.removeItem(LOGIN_TS_KEY);
+}
+
+async function forceReLogin() {
+  clearLoginTimestamp();
+  await supabaseClient.auth.signOut();
+  await updateAuthUI(null);
+  showAuthMessage("Sessione scaduta, accedi di nuovo.");
+}
+
+async function manualLogout() {
+  clearLoginTimestamp();
+  await supabaseClient.auth.signOut();
+  await updateAuthUI(null);
+  showAuthMessage("Hai effettuato il logout.");
+}
+
+// Restituisce true se la sessione ha superato i 30 minuti dall'accesso
+async function isSessionExpired() {
+  const loginTs = localStorage.getItem(LOGIN_TS_KEY);
+
+  if (!loginTs) {
+    return false;
+  }
+
+  return (Date.now() - Number(loginTs)) > SESSION_TIMEOUT_MS;
+}
+
+// Controlla la scadenza subito e poi ogni minuto mentre la pagina resta aperta
+async function checkSessionExpiry() {
+  if (await isSessionExpired()) {
+    await forceReLogin();
+  }
+}
+
+setInterval(checkSessionExpiry, 60 * 1000);
 
 async function updateAuthUI(session) {
   if (session) {
@@ -254,7 +304,7 @@ loginButton.addEventListener("click", async () => {
   loginButton.disabled = true;
   showAuthMessage("Accesso in corso...");
 
-  const { error } =
+  const { data, error } =
     await supabaseClient.auth.signInWithPassword({
       email,
       password
@@ -273,11 +323,9 @@ loginButton.addEventListener("click", async () => {
 
   showAuthMessage("Accesso effettuato.");
 
-  if (typeof updateAuthUI === "function") {
-    await updateAuthUI();
-  } else {
-    location.reload();
-  }
+  markLoginTimestamp();
+  await updateAuthUI(data.session);
+  await loadHoldings();
 });
 
 const passwordResetPanel =
@@ -456,6 +504,11 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 
 
 supabaseClient.auth.getSession().then(async ({ data }) => {
+  if (data.session && (await isSessionExpired())) {
+    await forceReLogin();
+    return;
+  }
+
   await updateAuthUI(data.session);
 
   if (data.session) {
@@ -826,5 +879,29 @@ document.addEventListener("click", async (event) => {
     button.disabled = false;
     button.textContent = "Elimina";
   }
+});
+</script><script>
+const userMenuToggle = document.getElementById("userMenuToggle");
+const userDropdown = document.getElementById("userDropdown");
+const logoutButton = document.getElementById("logoutButton");
+
+userMenuToggle.addEventListener("click", (event) => {
+  event.stopPropagation();
+  const isOpen = userDropdown.style.display === "block";
+  userDropdown.style.display = isOpen ? "none" : "block";
+});
+
+document.addEventListener("click", (event) => {
+  if (!userDropdown.contains(event.target) && event.target !== userMenuToggle) {
+    userDropdown.style.display = "none";
+  }
+});
+
+logoutButton.addEventListener("click", async (event) => {
+  event.stopPropagation();
+  userDropdown.style.display = "none";
+  logoutButton.disabled = true;
+  await manualLogout();
+  logoutButton.disabled = false;
 });
 </script></body></html>
