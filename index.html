@@ -275,6 +275,9 @@ loginButton.addEventListener("click", async () => {
   }
 
   showAuthMessage("Accesso effettuato.");
+  location.reload();
+ }
+);
 
   if (typeof updateAuthUI === "function") {
     await updateAuthUI();
@@ -308,7 +311,13 @@ function showPasswordResetMessage(
 }
 
 supabaseClient.auth.onAuthStateChange(
-  async (event) => {
+  (event, session) => {
+    console.log(
+      "Evento autenticazione:",
+      event,
+      session
+    );
+
     if (event === "PASSWORD_RECOVERY") {
       passwordResetPanel.style.display = "flex";
 
@@ -346,7 +355,7 @@ savePasswordButton.addEventListener(
 
     savePasswordButton.disabled = true;
     showPasswordResetMessage(
-      "Aggiornamento password..."
+      "Salvataggio in corso..."
     );
 
     const { error } =
@@ -373,10 +382,11 @@ savePasswordButton.addEventListener(
       "Password aggiornata correttamente."
     );
 
+    await supabaseClient.auth.signOut();
+
     setTimeout(() => {
-      passwordResetPanel.style.display = "none";
       location.reload();
-    }, 1500);
+    }, 1200);
   }
 );
 
