@@ -228,8 +228,10 @@ function showAuthMessage(message, isError = false) {
 }
 
 async function updateAuthUI(session) {
-  authPanel.style.display = "flex";
-}
+  if (session) {
+    authPanel.style.display = "none";
+    return;
+  }
 
   authPanel.style.display = "flex";
 }
@@ -261,18 +263,22 @@ loginButton.addEventListener("click", async () => {
   loginButton.disabled = false;
 
   if (error) {
-  console.error("Errore login:", error);
+    console.error("Errore login:", error);
+    showAuthMessage(
+      "Email o password non valide.",
+      true
+    );
+    return;
+  }
 
-  showAuthMessage(
-    "Email o password non valide.",
-    true
-  );
+  showAuthMessage("Accesso effettuato.");
 
-  return;
-}
-
-showAuthMessage("Accesso effettuato.");
-document.getElementById("auth-panel").style.display = "none";
+  if (typeof updateAuthUI === "function") {
+    await updateAuthUI();
+  } else {
+    location.reload();
+  }
+});
 
 const passwordResetPanel =
   document.getElementById("password-reset-panel");
