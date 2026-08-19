@@ -227,40 +227,11 @@ function showAuthMessage(message, isError = false) {
   loginStatus.style.color = isError ? "#ff7b91" : "#b9a8ca";
 }
 
-async function updateAuthUI(session = null) {
-  if (!session) {
-    const result = await supabaseClient.auth.getSession();
-
-    if (result.error) {
-      console.error(
-        "Errore recupero sessione:",
-        result.error
-      );
-
-      authPanel.style.display = "flex";
-      return;
-    }
-
-    session = result.data.session;
-  }
-
-  if (session?.user) {
+async function updateAuthUI(session) {
+  if (session) {
     authPanel.style.display = "none";
-    document.body.style.overflow = "auto";
-
-    if (typeof loadHoldings === "function") {
-      await loadHoldings();
-    }
-
-    if (typeof render === "function") {
-      render();
-    }
-
     return;
   }
-
-  authPanel.style.display = "flex";
-}
 
   authPanel.style.display = "flex";
 }
@@ -334,37 +305,16 @@ function showPasswordResetMessage(
 }
 
 supabaseClient.auth.onAuthStateChange(
-  (event, session) => {
-    const authPanel =
-      document.getElementById("auth-panel");
-
-    const passwordResetPanel =
-      document.getElementById("password-reset-panel");
-
+  async (event) => {
     if (event === "PASSWORD_RECOVERY") {
-      if (passwordResetPanel) {
-        passwordResetPanel.style.display = "flex";
-      }
+      passwordResetPanel.style.display = "flex";
+
+      const authPanel =
+        document.getElementById("auth-panel");
 
       if (authPanel) {
         authPanel.style.display = "none";
       }
-
-      return;
-    }
-
-    if (event === "SIGNED_IN" && session?.user) {
-      if (passwordResetPanel) {
-        passwordResetPanel.style.display = "none";
-      }
-
-      if (authPanel) {
-        authPanel.style.display = "none";
-      }
-
-      document.body.style.overflow = "auto";
-
-      console.log("Dashboard sbloccata per:", session.user.email);
     }
   }
 );
