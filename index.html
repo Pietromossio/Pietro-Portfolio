@@ -218,7 +218,6 @@ const supabaseClient = window.supabase.createClient(
   if (error) {
     throw error;
   }
-}
 </script><script>
 const authPanel = document.getElementById("auth-panel");
 const loginEmail = document.getElementById("login-email");
@@ -322,8 +321,114 @@ supabaseClient.auth.onAuthStateChange(
       passwordResetPanel.style.display = "flex";
 
       const authPanel =
-        document.getElementById("auth-panel");
+  document.getElementById("auth-panel");
 
+const loginEmail =
+  document.getElementById("login-email");
+
+const loginPassword =
+  document.getElementById("login-password");
+
+const loginButton =
+  document.getElementById("login-button");
+
+const loginStatus =
+  document.getElementById("login-status");
+
+const passwordResetPanel =
+  document.getElementById("password-reset-panel");
+
+const newPassword =
+  document.getElementById("new-password");
+
+const confirmPassword =
+  document.getElementById("confirm-password");
+
+const savePasswordButton =
+  document.getElementById("save-password");
+
+const passwordResetStatus =
+  document.getElementById("password-reset-status");
+
+function showAuthMessage(
+  message,
+  isError = false
+) {
+  loginStatus.textContent = message;
+  loginStatus.style.color =
+    isError ? "#ff7b91" : "#b9a8ca";
+}
+
+function showPasswordResetMessage(
+  message,
+  isError = false
+) {
+  passwordResetStatus.textContent = message;
+  passwordResetStatus.style.color =
+    isError ? "#ff7b91" : "#b9a8ca";
+}
+
+loginButton.addEventListener(
+  "click",
+  async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+
+    if (!email || !password) {
+      showAuthMessage(
+        "Inserisci email e password.",
+        true
+      );
+      return;
+    }
+
+    loginButton.disabled = true;
+    showAuthMessage("Accesso in corso...");
+
+    try {
+      const { error } =
+        await supabaseClient.auth
+          .signInWithPassword({
+            email,
+            password
+          });
+
+      if (error) {
+        console.error("Errore login:", error);
+        showAuthMessage(
+          error.message,
+          true
+        );
+        return;
+      }
+
+      showAuthMessage(
+        "Accesso effettuato."
+      );
+      location.reload();
+    } finally {
+      loginButton.disabled = false;
+    }
+  }
+);
+
+supabaseClient.auth.onAuthStateChange(
+  (event, session) => {
+    console.log(
+      "Evento autenticazione:",
+      event,
+      session
+    );
+
+    if (event === "PASSWORD_RECOVERY") {
+      passwordResetPanel.style.display = "flex";
+
+      if (authPanel) {
+        authPanel.style.display = "none";
+      }
+    }
+
+    if (event === "SIGNED_IN") {
       if (authPanel) {
         authPanel.style.display = "none";
       }
@@ -358,35 +463,31 @@ savePasswordButton.addEventListener(
       "Salvataggio in corso..."
     );
 
-    const { error } =
-      await supabaseClient.auth.updateUser({
-        password
-      });
+    try {
+      const { error } =
+        await supabaseClient.auth.updateUser({
+          password
+        });
 
-    savePasswordButton.disabled = false;
+      if (error) {
+        console.error(
+          "Errore aggiornamento password:",
+          error
+        );
 
-    if (error) {
-      console.error(
-        "Errore aggiornamento password:",
-        error
-      );
+        showPasswordResetMessage(
+          error.message,
+          true
+        );
+        return;
+      }
 
       showPasswordResetMessage(
-        error.message,
-        true
+        "Password aggiornata correttamente."
       );
-      return;
+    } finally {
+      savePasswordButton.disabled = false;
     }
-
-    showPasswordResetMessage(
-      "Password aggiornata correttamente."
-    );
-
-    await supabaseClient.auth.signOut();
-
-    setTimeout(() => {
-      location.reload();
-    }, 1200);
   }
 );
 
