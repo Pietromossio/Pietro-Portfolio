@@ -151,14 +151,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-async function sendMagicLink(email) {
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
-  });
-
   if (error) {
     throw error;
   }
@@ -183,28 +175,49 @@ async function updateAuthUI(session) {
   authPanel.style.display = "flex";
 }
 
+const loginPassword =
+  document.getElementById("login-password");
+
 loginButton.addEventListener("click", async () => {
   const email = loginEmail.value.trim();
+  const password = loginPassword.value;
 
-  if (!email) {
-    showAuthMessage("Inserisci un indirizzo email.", true);
+  if (!email || !password) {
+    showAuthMessage(
+      "Inserisci email e password.",
+      true
+    );
     return;
   }
 
-  
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
-  });
+  loginButton.disabled = true;
+  showAuthMessage("Accesso in corso...");
+
+  const { error } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
   loginButton.disabled = false;
 
   if (error) {
-    showAuthMessage(error.message, true);
+    console.error("Errore login:", error);
+    showAuthMessage(
+      "Email o password non valide.",
+      true
+    );
     return;
   }
+
+  showAuthMessage("Accesso effettuato.");
+
+  if (typeof updateAuthUI === "function") {
+    await updateAuthUI();
+  } else {
+    location.reload();
+  }
+});
 
 
 async function loadHoldings() {
