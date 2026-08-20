@@ -633,6 +633,210 @@ Sei un assistente finanziario personale.
     });
   }
 });
+// ============================================
+// TOOL: get_allocation_by_type
+// ============================================
+app.post("/api/tools/get_allocation_by_type", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { data, error } = await supabaseClient.rpc("get_allocation_by_type", { p_user_id: user.id });
+    if (error) {
+      console.error("Errore get_allocation_by_type:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ allocation: data });
+  } catch (error) {
+    console.error("Errore get_allocation_by_type:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
+// ============================================
+// TOOL: get_allocation_by_platform
+// ============================================
+app.post("/api/tools/get_allocation_by_platform", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { data, error } = await supabaseClient.rpc("get_allocation_by_platform", { p_user_id: user.id });
+    if (error) {
+      console.error("Errore get_allocation_by_platform:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ allocation: data });
+  } catch (error) {
+    console.error("Errore get_allocation_by_platform:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
+// ============================================
+// TOOL: get_top_holdings
+// ============================================
+app.post("/api/tools/get_top_holdings", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { limit = 10 } = req.body;
+
+    const { data, error } = await supabaseClient.rpc("get_top_holdings", { p_user_id: user.id, p_limit: limit });
+    if (error) {
+      console.error("Errore get_top_holdings:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ holdings: data });
+  } catch (error) {
+    console.error("Errore get_top_holdings:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
+// ============================================
+// TOOL: get_asset_performance
+// ============================================
+app.post("/api/tools/get_asset_performance", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { asset_name_pattern } = req.body;
+    if (!asset_name_pattern) {
+      return res.status(400).json({ error: "Parametro asset_name_pattern richiesto" });
+    }
+
+    const { data, error } = await supabaseClient.rpc("get_asset_performance", { p_user_id: user.id, p_asset_name_pattern: asset_name_pattern });
+    if (error) {
+      console.error("Errore get_asset_performance:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ performance: data });
+  } catch (error) {
+    console.error("Errore get_asset_performance:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
+// ============================================
+// TOOL: get_transactions_summary
+// ============================================
+app.post("/api/tools/get_transactions_summary", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { months = 1 } = req.body;
+
+    const { data, error } = await supabaseClient.rpc("get_transactions_summary", { p_user_id: user.id, p_months: months });
+    if (error) {
+      console.error("Errore get_transactions_summary:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ summary: data });
+  } catch (error) {
+    console.error("Errore get_transactions_summary:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
+// ============================================
+// TOOL: get_portfolio_projection
+// ============================================
+app.post("/api/tools/get_portfolio_projection", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+    if (!accessToken) {
+      return res.status(401).json({ error: "Sessione Supabase mancante" });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !user) {
+      return res.status(401).json({ error: "Utente non autenticato" });
+    }
+
+    const { annual_return_pct = 7, years = 10 } = req.body;
+
+    const { data, error } = await supabaseClient.rpc("get_portfolio_projection", { p_user_id: user.id, p_annual_return_pct: annual_return_pct, p_years: years });
+    if (error) {
+      console.error("Errore get_portfolio_projection:", error);
+      return res.status(500).json({ error: "Errore nell'esecuzione della query", details: error.message });
+    }
+
+    return res.json({ projection: data });
+  } catch (error) {
+    console.error("Errore get_portfolio_projection:", error);
+    return res.status(500).json({ error: "Errore del server", details: error.message });
+  }
+});
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Pietro Portfolio disponibile sulla porta ${PORT}`);
 });
