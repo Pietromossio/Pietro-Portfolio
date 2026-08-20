@@ -227,7 +227,7 @@ async function fetchAndFillQuote(){
   } else {
     if(!isin){$('price').value='';status.textContent='Inserisci l’ISIN per il prezzo automatico.';updateLivePreview();return}
   }
-  status.textContent='Recupero quotazione in corso…';
+  status.textContent='Recupero quotazione dal tuo worker Cloudflare…';
   let q=isCrypto?await cryptoQuote(crypto):await isinQuote(isin);
   if(q&&typeof q.price==='number'){
     $('price').value=q.price;
@@ -243,7 +243,66 @@ function scheduleQuoteFetch(){
 }
 $('isin').addEventListener('input',scheduleQuoteFetch);
 $('crypto').addEventListener('input',scheduleQuoteFetch);
-$('units').addEventListener('input',updateLivePreview);function openEdit(x){let i=data.find(a=>a.id===x);edit=x;$('modalTitle').textContent='Modifica investimento';$('platform').value=i.platform;$('name').value=i.name;$('type').value=i.type;$('auto').checked=i.auto;$('isin').value=i.isin||'';$('crypto').value=i.crypto||'';$('units').value=i.units??'';$('avg').value=i.avg??'';$('price').value=i.price??'';$('invested').value=i.invested??'';$('current').value=i.current??'';$('date').value=i.date||'';$('notes').value=i.notes||'';sync();$('modal').classList.add('open')}$('eye').onclick=()=>{hidden=!hidden;render()};$('add').onclick=()=>{edit=null;$('form').reset();$('modalTitle').textContent='Nuovo investimento';sync();$('modal').classList.add('open')};$('cancel').onclick=()=>$('modal').classList.remove('open');$('auto').onchange=sync;$('type').onchange=sync;$('form').onsubmit=e=>{e.preventDefault();let a=$('auto').checked,u=n($('units').value),av=n($('avg').value),pr=n($('price').value),i={id:edit||id(),platform:$('platform').value,name:$('name').value,type:$('type').value,auto:a,isin:a?$('isin').value.trim():'',crypto:a?$('crypto').value.trim():'',units:a?u:null,avg:a?av:null,price:a?pr:null,invested:a&&u!=null&&av!=null?u*av:n($('invested').value)||0,current:a&&u!=null&&pr!=null?u*pr:n($('current').value)||0,date:$('date').value,notes:$('notes').value};if(edit){data[data.findIndex(x=>x.id===edit)]=i}else{data.push(i);addOrder({type:'buy',platform:i.platform,name:i.name,quantity:a?u:null,price:a?av:null,amount:i.invested,currency:'EUR',source:'Manuale'})}save();render();$('modal').classList.remove('open');updatePrices()};$('ranges').onclick=e=>{let b=e.target.closest('button[data-range]');if(!b)return;range=b.dataset.range;document.querySelectorAll('#ranges button').forEach(x=>x.classList.toggle('active',x===b));draw()};document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active')});load();clock();setInterval(clock,1000);render();updatePrices();setInterval(updatePrices,60000);</script><script>
+$('units').addEventListener('input',updateLivePreview);function openEdit(x){let i=data.find(a=>a.id===x);edit=x;$('modalTitle').textContent='Modifica investimento';$('platform').value=i.platform;$('name').value=i.name;$('type').value=i.type;$('auto').checked=i.auto;$('isin').value=i.isin||'';$('crypto').value=i.crypto||'';$('units').value=i.units??'';$('avg').value=i.avg??'';$('price').value=i.price??'';$('invested').value=i.invested??'';$('current').value=i.current??'';$('date').value=i.date||'';$('notes').value=i.notes||'';sync();$('modal').classList.add('open')}$('eye').onclick=()=>{hidden=!hidden;render()};$('add').onclick=()=>{edit=null;$('form').reset();$('modalTitle').textContent='Nuovo investimento';sync();$('modal').classList.add('open')};$('cancel').onclick=()=>$('modal').classList.remove('open');$('auto').onchange=sync;$('type').onchange=sync;$('form').onsubmit=async e=>{
+  e.preventDefault();
+  let a=$('auto').checked,u=n($('units').value),av=n($('avg').value),pr=n($('price').value);
+  let i={id:edit||id(),platform:$('platform').value,name:$('name').value,type:$('type').value,auto:a,isin:a?$('isin').value.trim():'',crypto:a?$('crypto').value.trim():'',units:a?u:null,avg:a?av:null,price:a?pr:null,invested:a&&u!=null&&av!=null?u*av:n($('invested').value)||0,current:a&&u!=null&&pr!=null?u*pr:n($('current').value)||0,date:$('date').value,notes:$('notes').value};
+  const saveButton=document.querySelector('#form .save');
+  if(saveButton){saveButton.disabled=true}
+  try{
+    const {data:{session}} = await supabaseClient.auth.getSession();
+    if(session?.access_token){
+      const {data:{user}} = await supabaseClient.auth.getUser();
+      if(!user){throw new Error('Sessione non valida. Accedi nuovamente.')}
+      const payload={
+        user_id:user.id,
+        name:i.name,
+        platform:i.platform,
+        type:i.type,
+        quantity:a?u:1,
+        average_price:a?av:i.invested,
+        price:a?pr:i.current,
+        currency:'EUR',
+        isin:a?(i.isin||null):null,
+        crypto:a?(i.crypto||null):null,
+        notes:i.notes||null,
+        date:i.date||null
+      };
+      if(edit){
+        const {error}=await supabaseClient.from('holdings').update(payload).eq('id',edit).eq('user_id',user.id);
+        if(error) throw error;
+      }else{
+        const {error}=await supabaseClient.from('holdings').insert(payload);
+        if(error) throw error;
+        if(typeof addOrder==='function'){
+          addOrder({type:'buy',platform:i.platform,name:i.name,quantity:a?u:null,price:a?av:null,amount:i.invested,currency:'EUR',source:'Manuale'});
+        }
+      }
+      if(typeof loadHoldingsAfterChange==='function'){
+        await loadHoldingsAfterChange();
+      }else{
+        await loadHoldings();
+      }
+    }else{
+      if(edit){
+        data[data.findIndex(x=>x.id===edit)]=i;
+      }else{
+        data.push(i);
+        addOrder({type:'buy',platform:i.platform,name:i.name,quantity:a?u:null,price:a?av:null,amount:i.invested,currency:'EUR',source:'Manuale'});
+      }
+      save();
+      render();
+    }
+    $('modal').classList.remove('open');
+    updatePrices();
+  }catch(err){
+    console.error('Errore salvataggio investimento:',err);
+    alert(err.message||'Errore durante il salvataggio dell’investimento.');
+  }finally{
+    if(saveButton){saveButton.disabled=false}
+  }
+};
+$('ranges').onclick=e=>{let b=e.target.closest('button[data-range]');if(!b)return;range=b.dataset.range;document.querySelectorAll('#ranges button').forEach(x=>x.classList.toggle('active',x===b));draw()};document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active')});load();clock();setInterval(clock,1000);render();updatePrices();setInterval(updatePrices,60000);</script><script>
 const SUPABASE_URL = "https://edpptjsbezmafwkckyrt.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
