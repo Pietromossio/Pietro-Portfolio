@@ -292,7 +292,154 @@ if (holdingDeleteError) {
     });
   }
 });
+// ============================================
+// TOOL: get_monthly_returns
+// ============================================
+app.post("/api/tools/get_monthly_returns", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
 
+    if (!accessToken) {
+      return res.status(401).json({
+        error: "Sessione Supabase mancante"
+      });
+    }
+
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    );
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabaseClient.auth.getUser(accessToken);
+
+    if (userError || !user) {
+      console.error("Errore autenticazione Supabase:", userError);
+      return res.status(401).json({
+        error: "Utente non autenticato"
+      });
+    }
+
+    const { data, error } = await supabaseClient.rpc("get_monthly_returns", {
+      p_user_id: user.id
+    });
+
+    if (error) {
+      console.error("Errore get_monthly_returns:", error);
+      return res.status(500).json({
+        error: "Errore nell'esecuzione della query",
+        details: error.message
+      });
+    }
+
+    // Trova il mese migliore
+    const bestMonth = data.reduce((best, row) => 
+      (!best || row.monthly_return_pct > best.monthly_return_pct) ? row : best
+    , null);
+
+    return res.json({
+      monthly_returns: data,
+      best_month: bestMonth
+    });
+  } catch (error) {
+    console.error("Errore get_monthly_returns:", error);
+    return res.status(500).json({
+      error: "Errore del server",
+      details: error.message
+    });
+  }
+});
+
+// ============================================
+// TOOL: simulate_sip
+// ============================================
+app.post("/api/tools/simulate_sip", async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace("Bearer ", "");
+
+    if (!accessToken) {
+      return res.status(401).json({
+        error: "Sessione Supabase mancante"
+      });
+    }
+
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    );
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabaseClient.auth.getUser(accessToken);
+
+    if (userError || !user) {
+      console.error("Errore autenticazione Supabase:", userError);
+      return res.status(401).json({
+        error: "Utente non autenticato"
+      });
+    }
+
+    const { asset_symbol, start_date, monthly_amount } = req.body;
+
+    if (!asset_symbol || !start_date || !monthly_amount) {
+      return res.status(400).json({
+        error: "Parametri mancanti: asset_symbol, start_date, monthly_amount richiesti"
+      });
+    }
+
+    const { data, error } = await supabaseClient.rpc("simulate_sip", {
+      p_asset_symbol: asset_symbol,
+      p_start_date: start_date,
+      p_monthly_amount: monthly_amount
+    });
+
+    if (error) {
+      console.error("Errore simulate_sip:", error);
+      return res.status(500).json({
+        error: "Errore nell'esecuzione della query",
+        details: error.message
+      });
+    }
+
+    return res.json({
+      asset_symbol,
+      start_date,
+      monthly_amount,
+      result: data[0]
+    });
+  } catch (error) {
+    console.error("Errore simulate_sip:", error);
+    return res.status(500).json({
+      error: "Errore del server",
+      details: error.message
+    });
+  }
+});
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Pietro Portfolio disponibile sulla porta ${PORT}`);
 });
