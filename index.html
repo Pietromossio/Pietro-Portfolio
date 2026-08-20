@@ -1068,7 +1068,20 @@ document.addEventListener("click", async (event) => {
     if (deleteError) {
       throw deleteError;
     }
-
+if (typeof addOrder === 'function') {
+  addOrder({
+    type: 'sell',
+    platform: holding.platform || 'Portfolio',
+    name: holding.name,
+    quantity: Number(holding.quantity || 0),
+    price: Number(holding.price || holding.average_price || 0),
+    amount:
+      Number(holding.quantity || 0) *
+      Number(holding.price || holding.average_price || 0),
+    currency: holding.currency || 'EUR',
+    source: 'Chiusura posizione'
+  });
+}
     alert("Posizione chiusa e registrata nello storico");
 
     if (typeof loadHoldings === "function") {
